@@ -1,6 +1,6 @@
 import { ArrowBack } from "@mui/icons-material";
 import { Box, Button, Chip, Container, Divider, Grid, Paper, Rating, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import { getAnimeDetails } from "../libs/api";
@@ -11,9 +11,12 @@ function AnimeDetailPage() {
   const [anime, setAnime] = useState<AnimeDetails | null>(null);
   const navigate = useNavigate();
 
+  const abortController = useRef<AbortController>(null);
+  const controller = new AbortController();
+  abortController.current = controller;
 
   async function fetchAnime() {
-    const response = await getAnimeDetails(Number(id))
+    const response = await getAnimeDetails(Number(id), abortController.current?.signal);
     setAnime(response.data);
   }
 
@@ -23,6 +26,13 @@ function AnimeDetailPage() {
 
   useEffect(() => {
     fetchAnime();
+
+    return () => {
+      if (abortController.current === controller) {
+        abortController.current?.abort();
+        abortController.current = null;
+      }
+    }
   }, [id]);
 
   if (!anime) return null;

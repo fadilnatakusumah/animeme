@@ -1,7 +1,7 @@
 import { SearchOff } from '@mui/icons-material';
 import { Box, CircularProgress, Container, Typography } from '@mui/material';
 import { useDebounce, } from '@uidotdev/usehooks';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import AnimeList from '../components/AnimeList';
 
@@ -24,14 +24,16 @@ function HomePage() {
   const [isLoading, setIsLoading] = useState(query ? true : false);
   const [search, setSearch] = useState(query);
 
+  const abortController = useRef<AbortController>(null);
+  const controller = new AbortController();
+  abortController.current = controller;
 
   const debouncedSearchTerm = useDebounce(search, 250);
-  const debouncedPage = useDebounce(page, 250);
 
 
   async function getAnime() {
     if (!debouncedSearchTerm) return
-    const response = await searchAnime(debouncedSearchTerm, debouncedPage);
+    const response = await searchAnime(debouncedSearchTerm, page, controller.signal);
     setAnimeList(response.data);
     setTotalPages(response.pagination.last_visible_page);
     setIsLoading(false);
@@ -40,7 +42,8 @@ function HomePage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const queryText = e.target.value;
     if (!queryText) {
-      handleClearSearch()
+      handleClearSearch();
+      abortController.current?.abort();
       return
     }
 
@@ -69,7 +72,16 @@ function HomePage() {
 
   useEffect(() => {
     getAnime();
-  }, [debouncedSearchTerm, debouncedPage]);
+
+
+    return () => {
+      if (abortController.current === controller) {
+        // abort the request when the component unmounts
+        abortController.current?.abort();
+        abortController.current = null;
+      }
+    }
+  }, [debouncedSearchTerm, page]);
 
   return (
     <>
@@ -115,7 +127,7 @@ function HomePage() {
               <AnimeList result={animeList} />
               <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
                 <PaginationControl
-                  currentPage={debouncedPage}
+                  currentPage={page}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
                 />
