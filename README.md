@@ -1,39 +1,62 @@
-# Material UI - Vite example with Tailwind CSS in TypeScript
+# Animeme App
 
-## How to use
+A React application for searching anime.
 
-Download the example [or clone the repo](https://github.com/mui/material-ui):
+## Technical Documentation
 
-<!-- #target-branch-reference -->
+You can see the tech doc in here: [Technical Doc](docs\techinal-documentation.md)
 
-```bash
-curl https://codeload.github.com/mui/material-ui/tar.gz/master | tar -xz --strip=2 material-ui-master/examples/material-ui-vite-tailwind-ts
-cd material-ui-vite-tailwind-ts
-```
+## Prerequisites
 
-Install it and run:
+- Node.js 18.x or higher
+- npm or yarn or pnpm or bun
 
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies:
 ```bash
 npm install
-npm run dev
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
 ```
 
-or:
 
-<!-- #target-branch-reference -->
+3. Run the development server:
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-[![Edit on CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/sandbox/github/mui/material-ui/tree/master/examples/material-ui-vite-tailwind-ts)
+Open [http://localhost:5173](http://localhost:5173) with your browser to see the result.
 
-[![Edit on StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/mui/material-ui/tree/master/examples/material-ui-vite-tailwind-ts)
+## Key Features
 
-## The idea behind the example
+- Clean and simple UI
+- Search functionality with fast cached data
+- Modern UI with Material Design UI
+- Type-safe development with TypeScript
 
-This example demonstrates how you can use [Tailwind CSS](https://tailwindcss.com/) and [Vite](https://github.com/vitejs/vite) together with Material UI.
-It includes `@mui/material` and its peer dependencies, including [Emotion](https://emotion.sh/docs/introduction), the default style engine in Material UI.
 
-## What's next?
+## Project Structure
 
-<!-- #host-reference -->
+```
+├── src/
+│   ├── components/    # React components
+│   ├── lib/api      # API services
+│   ├── lib/swr      # API services with SWR
+├── public/           # Static files
+└── docs/            # Documentation
+```
 
-You now have a working example project.
-You can head back to the documentation and continue by browsing the [templates](https://mui.com/material-ui/getting-started/templates/) section.
+## Screenshot
+![Screenshot](docs\preview.gif)
