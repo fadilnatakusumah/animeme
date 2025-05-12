@@ -1,87 +1,58 @@
-import { SearchOff } from '@mui/icons-material';
-import { Box, CircularProgress, Container, Typography } from '@mui/material';
-import { useDebounce, } from '@uidotdev/usehooks';
-import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
-import AnimeList from '../components/AnimeList';
+import { SearchOff } from "@mui/icons-material";
+import { Box, CircularProgress, Container, Typography } from "@mui/material";
+import { useDebounce } from "@uidotdev/usehooks";
+import React, { useState } from "react";
+import { useSearchParams } from "react-router";
+import AnimeList from "../components/AnimeList";
 
-import PaginationControl from '../components/PaginationControl';
-import SearchBar from '../components/SearchBar';
-import { searchAnime } from '../libs/api';
-import { AnimeDetails } from '../types/apiResponse';
+import PaginationControl from "../components/PaginationControl";
+import SearchBar from "../components/SearchBar";
 
 import AnimemeLogo from "../assets/animeme.png";
-import Copyright from '../components/Copyright';
-
+import Copyright from "../components/Copyright";
+import { useAnimeList } from "../libs/swr";
 
 function HomePage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const query = searchParams.get("q") || ""
-  const page = Number.parseInt(searchParams.get("page") || "1", 10)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") || "";
+  const page = Number.parseInt(searchParams.get("page") || "1", 10);
 
-  const [animeList, setAnimeList] = useState<AnimeDetails[]>([]);
-  const [totalPages, setTotalPages] = useState(0);
-  const [isLoading, setIsLoading] = useState(query ? true : false);
   const [search, setSearch] = useState(query);
-
-  const abortController = useRef<AbortController>(null);
-  const controller = new AbortController();
-  abortController.current = controller;
 
   const debouncedSearchTerm = useDebounce(search, 250);
 
-
-  async function getAnime() {
-    if (!debouncedSearchTerm) return
-    const response = await searchAnime(debouncedSearchTerm, page, controller.signal);
-    setAnimeList(response.data);
-    setTotalPages(response.pagination.last_visible_page);
-    setIsLoading(false);
-  }
+  const [{ data, error, isLoading }, controller] = useAnimeList(
+    debouncedSearchTerm,
+    page
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const queryText = e.target.value;
     if (!queryText) {
       handleClearSearch();
-      abortController.current?.abort();
-      return
+      controller.abort();
+      return;
     }
 
-    setIsLoading(true);
     setSearch(queryText);
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams.toString());
     params.set("q", queryText);
-    setSearchParams(params.toString())
-  }
+    setSearchParams(params.toString());
+  };
 
   function handleClearSearch() {
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParams.toString());
     params.delete("q");
+    params.delete("page");
     setSearch("");
-    setAnimeList([]);
-    setTotalPages(0);
-    setIsLoading(false);
-    setSearchParams(params.toString())
+    setSearchParams(params.toString());
   }
 
   function handlePageChange(page: number) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", page.toString())
-    setSearchParams(params.toString())
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", page.toString());
+    setSearchParams(params.toString());
   }
-
-  useEffect(() => {
-    getAnime();
-
-
-    return () => {
-      if (abortController.current === controller) {
-        // abort the request when the component unmounts
-        abortController.current?.abort();
-        abortController.current = null;
-      }
-    }
-  }, [debouncedSearchTerm, page]);
 
   return (
     <>
@@ -122,20 +93,37 @@ function HomePage() {
                 Loading...
               </Typography>
             </Box>
-          ) : animeList.length > 0 ? (
+          ) : error ? (
+            <Box
+              sx={{ display: "flex", justifyContent: "center", marginTop: 4 }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ display: "flex", alignItems: "center", gap: 1 }}
+              >
+                <SearchOff sx={{ fontSize: 60 }} />
+                {error.message}
+              </Typography>
+            </Box>
+          ) : data && data?.data?.length > 0 ? (
             <>
-              <AnimeList result={animeList} />
+              <AnimeList result={data.data} />
               <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
                 <PaginationControl
-                  currentPage={page}
-                  totalPages={totalPages}
+                  currentPage={data.pagination.current_page}
+                  totalPages={data.pagination.last_visible_page}
                   onPageChange={handlePageChange}
                 />
               </Box>
             </>
-          ) : query.length > 0 && animeList.length === 0 ? (
-            <Box sx={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
-              <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          ) : query.length > 0 && data?.data.length === 0 ? (
+            <Box
+              sx={{ display: "flex", justifyContent: "center", marginTop: 4 }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ display: "flex", alignItems: "center", gap: 1 }}
+              >
                 <SearchOff sx={{ fontSize: 60 }} />
                 No results found
               </Typography>
@@ -148,4 +136,4 @@ function HomePage() {
   );
 }
 
-export default HomePage
+export default HomePage;

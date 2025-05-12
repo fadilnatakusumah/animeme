@@ -1,41 +1,71 @@
 import { ArrowBack } from "@mui/icons-material";
-import { Box, Button, Chip, Container, Divider, Grid, Paper, Rating, Typography } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  Grid,
+  Paper,
+  Rating,
+  Typography,
+} from "@mui/material";
 import { useNavigate, useParams } from "react-router";
 
-import { getAnimeDetails } from "../libs/api";
-import { AnimeDetails } from "../types/apiResponse";
+import { useAnimeDetail } from "../libs/swr";
 
 function AnimeDetailPage() {
   const { id } = useParams();
-  const [anime, setAnime] = useState<AnimeDetails | null>(null);
   const navigate = useNavigate();
 
-  const abortController = useRef<AbortController>(null);
-  const controller = new AbortController();
-  abortController.current = controller;
-
-  async function fetchAnime() {
-    const response = await getAnimeDetails(Number(id), abortController.current?.signal);
-    setAnime(response.data);
-  }
+  const [{ data, error, isLoading }] = useAnimeDetail(id!);
 
   function handleGoBack() {
     navigate(-1);
   }
 
-  useEffect(() => {
-    fetchAnime();
+  if (isLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
+          <CircularProgress size={24} />
+          <Typography variant="h6" sx={{ marginLeft: 2 }}>
+            Loading...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
 
-    return () => {
-      if (abortController.current === controller) {
-        abortController.current?.abort();
-        abortController.current = null;
-      }
-    }
-  }, [id]);
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4, textAlign: "center" }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          {error.message}
+        </Typography>
+      </Container>
+    );
+  }
 
-  if (!anime) return null;
+  if (!data?.data) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Button startIcon={<ArrowBack />} onClick={handleGoBack} sx={{ mb: 3 }}>
+          Back to Search
+        </Button>
+
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          sx={{ mb: 3, textAlign: "center" }}
+        >
+          Anime Not found
+        </Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -48,8 +78,11 @@ function AnimeDetailPage() {
           <Grid size={{ xs: 12, md: 4 }}>
             <Box
               component="img"
-              src={anime.images.jpg.large_image_url || anime.images.jpg.image_url}
-              alt={anime.title}
+              src={
+                data.data.images.jpg.large_image_url ||
+                data.data.images.jpg.image_url
+              }
+              alt={data.data.title}
               sx={{
                 width: "100%",
                 borderRadius: 2,
@@ -60,68 +93,93 @@ function AnimeDetailPage() {
 
           <Grid size={{ xs: 12, md: 8 }}>
             <Typography variant="h4" component="h1" gutterBottom>
-              {anime.title}
+              {data.data.title}
             </Typography>
 
-            {anime.title_english && anime.title_english !== anime.title && (
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                {anime.title_english}
-              </Typography>
-            )}
+            {data.data.title_english &&
+              data.data.title_english !== data.data.title && (
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  {data.data.title_english}
+                </Typography>
+              )}
 
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <Rating value={anime.score ? anime.score / 2 : 0} precision={0.5} readOnly />
+              <Rating
+                value={data.data.score ? data.data.score / 2 : 0}
+                precision={0.5}
+                readOnly
+              />
               <Typography variant="body2" sx={{ ml: 1 }}>
-                {anime.score}/10 ({anime.scored_by?.toLocaleString() || "N/A"} votes)
+                {data.data.score}/10 (
+                {data.data.scored_by?.toLocaleString() || "N/A"} votes)
               </Typography>
             </Box>
 
             <Box sx={{ mb: 2 }}>
-              {anime.genres?.slice(0, 5).map((genre: any) => (
-                <Chip key={genre.mal_id} label={genre.name} sx={{ mr: 1, mb: 1 }} color="primary" variant="outlined" />
+              {data.data.genres?.slice(0, 5).map((genre: any) => (
+                <Chip
+                  key={genre.mal_id}
+                  label={genre.name}
+                  sx={{ mr: 1, mb: 1 }}
+                  color="primary"
+                  variant="outlined"
+                />
               ))}
             </Box>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Type
                 </Typography>
-                <Typography variant="body1">{anime.type || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {data.data.type || "N/A"}
+                </Typography>
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Episodes
                 </Typography>
-                <Typography variant="body1">{anime.episodes || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {data.data.episodes || "N/A"}
+                </Typography>
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Status
                 </Typography>
-                <Typography variant="body1">{anime.status || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {data.data.status || "N/A"}
+                </Typography>
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Aired
                 </Typography>
-                <Typography variant="body1">{anime.aired?.string || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {data.data.aired?.string || "N/A"}
+                </Typography>
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Season
                 </Typography>
                 <Typography variant="body1">
-                  {anime.season
-                    ? `${anime.season.charAt(0).toUpperCase() + anime.season.slice(1)} ${anime.year}`
+                  {data.data.season
+                    ? `${
+                        data.data.season.charAt(0).toUpperCase() +
+                        data.data.season.slice(1)
+                      } ${data.data.year}`
                     : "N/A"}
                 </Typography>
               </Grid>
-              <Grid size={{ xs: 6, sm: 4 }} >
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="body2" color="text.secondary">
                   Duration
                 </Typography>
-                <Typography variant="body1">{anime.duration || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {data.data.duration || "N/A"}
+                </Typography>
               </Grid>
             </Grid>
 
@@ -131,13 +189,13 @@ function AnimeDetailPage() {
               Synopsis
             </Typography>
             <Typography variant="body1" paragraph>
-              {anime.synopsis || "No synopsis available."}
+              {data.data.synopsis || "No synopsis available."}
             </Typography>
           </Grid>
         </Grid>
       </Paper>
     </Container>
-  )
+  );
 }
 
-export default AnimeDetailPage
+export default AnimeDetailPage;
